@@ -77,4 +77,11 @@ const (
 	PermissionDriverDocumentRead     = "DRIVER_DOCUMENT.READ"
 	PermissionDriverDocumentUpdate   = "DRIVER_DOCUMENT.UPDATE"
 	PermissionDriverDocumentDelete   = "DRIVER_DOCUMENT.DELETE"
+
+	// Driver profile
+	PermissionDriverProfileCreate = "DRIVER_PROFILE.CREATE"
+	PermissionDriverProfileList   = "DRIVER_PROFILE.LIST"
+	PermissionDriverProfileRead   = "DRIVER_PROFILE.READ"
+	PermissionDriverProfileUpdate = "DRIVER_PROFILE.UPDATE"
+	PermissionDriverProfileDelete = "DRIVER_PROFILE.DELETE"
 )

@@ -13,13 +13,14 @@ import (
 )
 
 const createSurchargeCondition = `-- name: CreateSurchargeCondition :one
-INSERT INTO system_surcharge_conditions (code, condition_type, config, is_active)
-VALUES ($1, $2, $3, $4)
-RETURNING id, code, condition_type, config, is_active
+INSERT INTO system_surcharge_conditions (code, name, condition_type, config, is_active)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, code, condition_type, config, is_active, name
 `
 
 type CreateSurchargeConditionParams struct {
 	Code          string      `json:"code"`
+	Name          string      `json:"name"`
 	ConditionType string      `json:"condition_type"`
 	Config        []byte      `json:"config"`
 	IsActive      pgtype.Bool `json:"is_active"`
@@ -28,6 +29,7 @@ type CreateSurchargeConditionParams struct {
 func (q *Queries) CreateSurchargeCondition(ctx context.Context, arg CreateSurchargeConditionParams) (SystemSurchargeCondition, error) {
 	row := q.db.QueryRow(ctx, createSurchargeCondition,
 		arg.Code,
+		arg.Name,
 		arg.ConditionType,
 		arg.Config,
 		arg.IsActive,
@@ -39,6 +41,7 @@ func (q *Queries) CreateSurchargeCondition(ctx context.Context, arg CreateSurcha
 		&i.ConditionType,
 		&i.Config,
 		&i.IsActive,
+		&i.Name,
 	)
 	return i, err
 }
@@ -53,8 +56,27 @@ func (q *Queries) DeleteSurchargeCondition(ctx context.Context, id uuid.UUID) er
 	return err
 }
 
+const getSurchargeConditionByCode = `-- name: GetSurchargeConditionByCode :one
+SELECT id, code, condition_type, config, is_active, name FROM system_surcharge_conditions
+WHERE code = $1
+`
+
+func (q *Queries) GetSurchargeConditionByCode(ctx context.Context, code string) (SystemSurchargeCondition, error) {
+	row := q.db.QueryRow(ctx, getSurchargeConditionByCode, code)
+	var i SystemSurchargeCondition
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.ConditionType,
+		&i.Config,
+		&i.IsActive,
+		&i.Name,
+	)
+	return i, err
+}
+
 const getSurchargeConditionByID = `-- name: GetSurchargeConditionByID :one
-SELECT id, code, condition_type, config, is_active FROM system_surcharge_conditions
+SELECT id, code, condition_type, config, is_active, name FROM system_surcharge_conditions
 WHERE id = $1
 `
 
@@ -67,12 +89,13 @@ func (q *Queries) GetSurchargeConditionByID(ctx context.Context, id uuid.UUID) (
 		&i.ConditionType,
 		&i.Config,
 		&i.IsActive,
+		&i.Name,
 	)
 	return i, err
 }
 
 const listSurchargeConditions = `-- name: ListSurchargeConditions :many
-SELECT id, code, condition_type, config, is_active FROM system_surcharge_conditions
+SELECT id, code, condition_type, config, is_active, name FROM system_surcharge_conditions
 ORDER BY code ASC
 `
 
@@ -91,6 +114,7 @@ func (q *Queries) ListSurchargeConditions(ctx context.Context) ([]SystemSurcharg
 			&i.ConditionType,
 			&i.Config,
 			&i.IsActive,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -102,38 +126,22 @@ func (q *Queries) ListSurchargeConditions(ctx context.Context) ([]SystemSurcharg
 	return items, nil
 }
 
-const getSurchargeConditionByCode = `-- name: GetSurchargeConditionByCode :one
-SELECT id, code, condition_type, config, is_active FROM system_surcharge_conditions
-WHERE code = $1
-`
-
-func (q *Queries) GetSurchargeConditionByCode(ctx context.Context, code string) (SystemSurchargeCondition, error) {
-	row := q.db.QueryRow(ctx, getSurchargeConditionByCode, code)
-	var i SystemSurchargeCondition
-	err := row.Scan(
-		&i.ID,
-		&i.Code,
-		&i.ConditionType,
-		&i.Config,
-		&i.IsActive,
-	)
-	return i, err
-}
-
 const updateSurchargeCondition = `-- name: UpdateSurchargeCondition :one
 UPDATE system_surcharge_conditions
 SET
   code = $2,
-  condition_type = $3,
-  config = $4,
-  is_active = $5
+  name = $3,
+  condition_type = $4,
+  config = $5,
+  is_active = $6
 WHERE id = $1
-RETURNING id, code, condition_type, config, is_active
+RETURNING id, code, condition_type, config, is_active, name
 `
 
 type UpdateSurchargeConditionParams struct {
 	ID            uuid.UUID   `json:"id"`
 	Code          string      `json:"code"`
+	Name          string      `json:"name"`
 	ConditionType string      `json:"condition_type"`
 	Config        []byte      `json:"config"`
 	IsActive      pgtype.Bool `json:"is_active"`
@@ -143,6 +151,7 @@ func (q *Queries) UpdateSurchargeCondition(ctx context.Context, arg UpdateSurcha
 	row := q.db.QueryRow(ctx, updateSurchargeCondition,
 		arg.ID,
 		arg.Code,
+		arg.Name,
 		arg.ConditionType,
 		arg.Config,
 		arg.IsActive,
@@ -154,6 +163,7 @@ func (q *Queries) UpdateSurchargeCondition(ctx context.Context, arg UpdateSurcha
 		&i.ConditionType,
 		&i.Config,
 		&i.IsActive,
+		&i.Name,
 	)
 	return i, err
 }

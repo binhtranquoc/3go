@@ -12,10 +12,10 @@ import (
 )
 
 type Querier interface {
-	AddSurchargeRuleConditions(ctx context.Context, arg AddSurchargeRuleConditionsParams) error
 	CountAccounts(ctx context.Context) (int64, error)
 	CountDriverDocumentTypes(ctx context.Context, dollar_1 interface{}) (int64, error)
 	CountDriverDocumentTypesByServiceID(ctx context.Context, arg CountDriverDocumentTypesByServiceIDParams) (int64, error)
+	CountDriverProfiles(ctx context.Context, dollar_1 interface{}) (int64, error)
 	CountOTPsCreatedSince(ctx context.Context, arg CountOTPsCreatedSinceParams) (int32, error)
 	CountPermissions(ctx context.Context, dollar_1 string) (int64, error)
 	CountRoles(ctx context.Context, dollar_1 string) (int64, error)
@@ -57,6 +57,7 @@ type Querier interface {
 	DeleteDistancePricingRule(ctx context.Context, id uuid.UUID) error
 	DeleteDriverDocument(ctx context.Context, id uuid.UUID) error
 	DeleteDriverDocumentType(ctx context.Context, id uuid.UUID) error
+	DeleteDriverProfile(ctx context.Context, id uuid.UUID) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeletePackageSizePricing(ctx context.Context, id uuid.UUID) error
 	DeletePermission(ctx context.Context, id uuid.UUID) error
@@ -118,6 +119,7 @@ type Querier interface {
 	GetZoneByID(ctx context.Context, id uuid.UUID) (GetZoneByIDRow, error)
 	IncrementOTPAttempt(ctx context.Context, id uuid.UUID) error
 	InsertAdminRole(ctx context.Context, arg InsertAdminRoleParams) error
+	InsertSurchargeRuleCondition(ctx context.Context, arg InsertSurchargeRuleConditionParams) error
 	ListAccountAppDevices(ctx context.Context, accountID uuid.UUID) ([]AccountAppDevice, error)
 	ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error)
 	ListActiveSessions(ctx context.Context, accountID uuid.UUID) ([]ListActiveSessionsRow, error)
@@ -126,6 +128,7 @@ type Querier interface {
 	ListDriverDocumentTypes(ctx context.Context, arg ListDriverDocumentTypesParams) ([]DriverDocumentType, error)
 	ListDriverDocumentTypesByServiceID(ctx context.Context, arg ListDriverDocumentTypesByServiceIDParams) ([]DriverDocumentType, error)
 	ListDriverDocumentsByDriverID(ctx context.Context, driverID uuid.UUID) ([]DriverDocument, error)
+	ListDriverProfiles(ctx context.Context, arg ListDriverProfilesParams) ([]DriverProfile, error)
 	ListPackageSizePricings(ctx context.Context, serviceID pgtype.UUID) ([]SystemPackageSizePricing, error)
 	ListPermissions(ctx context.Context, arg ListPermissionsParams) ([]SystemPermission, error)
 	// Trả về document types áp dụng cho service: theo service_id HOẶC chung (service_id IS NULL).

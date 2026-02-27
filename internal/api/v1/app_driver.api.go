@@ -101,6 +101,27 @@ func (a *appDriverApi) InitAppDriverApi(
 	driverRoutes := router.Group(API_MODULE_APP_DRIVER)
 	protected := driverRoutes.Group("", authMiddleware)
 	{
+		protected.POST("driver_profiles", middleware.RequirePermission(permissionChecker, constants.PermissionDriverProfileCreate), func(c *gin.Context) {
+			resp := a.driverProfileController.Create(c)
+			c.JSON(http.StatusOK, resp)
+		})
+		protected.GET("driver_profiles", middleware.RequirePermission(permissionChecker, constants.PermissionDriverProfileList), func(c *gin.Context) {
+			resp := a.driverProfileController.List(c)
+			c.JSON(http.StatusOK, resp)
+		})
+		protected.GET("driver_profiles/:id", middleware.RequirePermission(permissionChecker, constants.PermissionDriverProfileRead), func(c *gin.Context) {
+			resp := a.driverProfileController.GetByID(c)
+			c.JSON(http.StatusOK, resp)
+		})
+		protected.PUT("driver_profiles/:id", middleware.RequirePermission(permissionChecker, constants.PermissionDriverProfileUpdate), func(c *gin.Context) {
+			resp := a.driverProfileController.Update(c)
+			c.JSON(http.StatusOK, resp)
+		})
+		protected.DELETE("driver_profiles/:id", middleware.RequirePermission(permissionChecker, constants.PermissionDriverProfileDelete), func(c *gin.Context) {
+			resp := a.driverProfileController.Delete(c)
+			c.JSON(http.StatusOK, resp)
+		})
+
 		// Driver document types
 		protected.POST("document-types", middleware.RequirePermission(permissionChecker, constants.PermissionDriverDocumentTypeCreate), func(c *gin.Context) {
 			resp := a.driverDocumentTypeController.Create(c)

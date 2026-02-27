@@ -20,8 +20,12 @@ type (
 		Create(ctx context.Context, accountID uuid.UUID, fullName string) (*appdrivermodel.DriverProfile, error)
 		GetByAccountID(ctx context.Context, accountID uuid.UUID) (*appdrivermodel.DriverProfile, error)
 		GetByID(ctx context.Context, id uuid.UUID) (*appdrivermodel.DriverProfile, error)
+		List(ctx context.Context, search string, limit, offset int32) ([]*appdrivermodel.DriverProfile, error)
+		Count(ctx context.Context, search string) (int64, error)
+		Update(ctx context.Context, arg pgdb.UpdateDriverProfileParams) (*appdrivermodel.DriverProfile, error)
 		UpdateStatus(ctx context.Context, id uuid.UUID, status pgdb.DriverProfileStatus) (*appdrivermodel.DriverProfile, error)
 		CreateStatusHistory(ctx context.Context, driverID uuid.UUID, fromStatus pgdb.NullDriverProfileStatus, toStatus pgdb.DriverProfileStatus, changedBy *uuid.UUID, reason *string) error
+		Delete(ctx context.Context, id uuid.UUID) error
 	}
 
 	driverProfileRepository struct {
@@ -46,6 +50,18 @@ func (r *driverProfileRepository) Create(ctx context.Context, accountID uuid.UUI
 	}
 	row, err := db.CreateDriverProfile(ctx, arg)
 	if err != nil {
+		return nil, err
+	}
+	return appdrivermapper.ToDriverProfileFromRow(&row), nil
+}
+
+func (r *driverProfileRepository) Update(ctx context.Context, arg pgdb.UpdateDriverProfileParams) (*appdrivermodel.DriverProfile, error) {
+	db := r.getDB(ctx)
+	row, err := db.UpdateDriverProfile(ctx, arg)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return appdrivermapper.ToDriverProfileFromRow(&row), nil
@@ -112,4 +128,31 @@ func (r *driverProfileRepository) GetByID(ctx context.Context, id uuid.UUID) (*a
 		return nil, err
 	}
 	return appdrivermapper.ToDriverProfileFromRow(&row), nil
+}
+
+func (r *driverProfileRepository) List(ctx context.Context, search string, limit, offset int32) ([]*appdrivermodel.DriverProfile, error) {
+	db := r.getDB(ctx)
+	rows, err := db.ListDriverProfiles(ctx, pgdb.ListDriverProfilesParams{
+		Column1: search,
+		Limit:   limit,
+		Offset:  offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*appdrivermodel.DriverProfile, 0, len(rows))
+	for i := range rows {
+		out = append(out, appdrivermapper.ToDriverProfileFromRow(&rows[i]))
+	}
+	return out, nil
+}
+
+func (r *driverProfileRepository) Count(ctx context.Context, search string) (int64, error) {
+	db := r.getDB(ctx)
+	return db.CountDriverProfiles(ctx, search)
+}
+
+func (r *driverProfileRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	db := r.getDB(ctx)
+	return db.DeleteDriverProfile(ctx, id)
 }

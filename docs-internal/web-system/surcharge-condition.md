@@ -45,13 +45,13 @@
   "is_active": true
 }
 
-// 4. template holiday
+// 4. template holiday (danh sách ngày cụ thể, định dạng YYYY-MM-DD)
 
 {
-  "code": "HOLIDAY_TET",
+  "code": "HOLIDAY_TET_2026",
   "condition_type": "holiday",
   "config": {
-    "holiday_code": "TET"
+    "dates": ["2025-12-29", "2025-12-30", "2026-01-01"]
   },
   "is_active": true
 }

@@ -478,6 +478,7 @@ type SystemSurchargeCondition struct {
 	ConditionType string      `json:"condition_type"`
 	Config        []byte      `json:"config"`
 	IsActive      pgtype.Bool `json:"is_active"`
+	Name          string      `json:"name"`
 }
 
 type SystemSurchargeRule struct {
