@@ -2,7 +2,7 @@ package appdriver
 
 import (
 	common "go-structure/internal/common"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	appdrivermodel "go-structure/internal/repository/model/app_driver"
 )
 

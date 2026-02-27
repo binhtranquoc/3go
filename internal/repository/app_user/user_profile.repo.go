@@ -6,7 +6,7 @@ import (
 
 	"go-structure/internal/helper/database"
 	appuser "go-structure/internal/mapper/app_user"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	"go-structure/internal/repository/model"
 
 	"github.com/google/uuid"

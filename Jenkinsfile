@@ -8,7 +8,6 @@ pipeline {
     }
 
     stages {
-
         stage('DEV Pipeline') {
             when { branch 'dev' }
 
@@ -61,11 +60,8 @@ pipeline {
 
         stage('PROD Pipeline') {
             when { branch 'master' }
-
             agent { label 'node-manager-docker-swam' }
-
             stages {
-
                 stage('Build & Push PROD Image') {
                     steps {
                         script {

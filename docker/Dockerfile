@@ -18,7 +18,7 @@ WORKDIR /app
 
 COPY --from=builder /gogogo-api/app .
 COPY --from=builder /gogogo-api/migrate .
-COPY --from=builder /gogogo-api/internal/orm/postgres/migrations ./internal/orm/postgres/migrations
+COPY --from=builder /gogogo-api/orm/postgres/migrations ./orm/postgres/migrations
 
 EXPOSE 8080
 CMD ["./app"]

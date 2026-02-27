@@ -3,13 +3,13 @@ version: "2"
 sql:
   - engine: "mysql"
     schema:
-      - internal/orm/mysql/migrations
+      - orm/mysql/migrations
     queries:
-      - internal/orm/mysql/queries
+      - orm/mysql/queries
     gen:
       go:
         package: "mysqldb"
-        out: "internal/orm/db/mysql"
+        out: "orm/db/mysql"
         sql_package: "database/sql"
         emit_json_tags: true
         emit_interface: true

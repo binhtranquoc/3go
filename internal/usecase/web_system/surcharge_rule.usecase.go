@@ -9,7 +9,7 @@ import (
 	dto "go-structure/internal/dto/web_system"
 	"go-structure/internal/helper/database"
 	"go-structure/internal/helper/parse"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	account_repo "go-structure/internal/repository"
 	"go-structure/internal/repository/model"
 	websystem_model "go-structure/internal/repository/model/web_system"

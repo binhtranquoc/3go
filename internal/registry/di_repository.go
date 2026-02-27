@@ -38,7 +38,8 @@ const (
 	RolePermissionRepoDIName             = "role_permission_repo_di"
 	DriverDocumentTypeRepoDIName         = "driver_document_type_repo_di"
 	DriverProfileRepoDIName              = "driver_profile_repo_di"
-	DriverDocumentRepoDIName              = "driver_document_repo_di"
+	DriverDocumentRepoDIName             = "driver_document_repo_di"
+	DriverServiceRepoDIName              = "driver_service_repo_di"
 )
 
 func buildRepositories() error {
@@ -294,6 +295,15 @@ func buildRepositories() error {
 		},
 	}
 
+	driverServiceDef := di.Def{
+		Name:  DriverServiceRepoDIName,
+		Scope: di.App,
+		Build: func(ctn di.Container) (interface{}, error) {
+			pool := ctn.Get(PostgresPoolDIName).(*pgxpool.Pool)
+			return app_driver_repo.NewDriverServiceRepository(pool), nil
+		},
+	}
+
 	return builder.Add(
 		userProfileDef,
 		accountDef,
@@ -323,5 +333,6 @@ func buildRepositories() error {
 		driverDocumentTypeDef,
 		driverProfileDef,
 		driverDocumentDef,
+		driverServiceDef,
 	)
 }
