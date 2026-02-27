@@ -8,8 +8,10 @@ import (
 	dto_common "go-structure/internal/dto/common"
 	dto "go-structure/internal/dto/web_system"
 	"go-structure/internal/helper/database"
+	"go-structure/internal/helper/parse"
 	pgdb "go-structure/internal/orm/db/postgres"
 	account_repo "go-structure/internal/repository"
+	"go-structure/internal/repository/model"
 	websystem_model "go-structure/internal/repository/model/web_system"
 	websystem_repo "go-structure/internal/repository/web_system"
 	serviceTransformer "go-structure/internal/transformer/web_system"
@@ -30,24 +32,30 @@ type (
 	}
 
 	surchargeRuleUsecase struct {
-		repo               websystem_repo.ISurchargeRuleRepository
-		serviceRepo        websystem_repo.IServiceRepository
-		zoneRepo           account_repo.IZoneRepository
-		transactionManager database.TransactionManager
+		repo                   websystem_repo.ISurchargeRuleRepository
+		conditionRepo          websystem_repo.ISurchargeRuleConditionRepository
+		surchargeConditionRepo websystem_repo.ISurchargeConditionRepository
+		serviceRepo            websystem_repo.IServiceRepository
+		zoneRepo               account_repo.IZoneRepository
+		transactionManager     database.TransactionManager
 	}
 )
 
 func NewSurchargeRuleUsecase(
 	repo websystem_repo.ISurchargeRuleRepository,
+	conditionRepo websystem_repo.ISurchargeRuleConditionRepository,
+	surchargeConditionRepo websystem_repo.ISurchargeConditionRepository,
 	serviceRepo websystem_repo.IServiceRepository,
 	zoneRepo account_repo.IZoneRepository,
 	transactionManager database.TransactionManager,
 ) ISurchargeRuleUsecase {
 	return &surchargeRuleUsecase{
-		repo:               repo,
-		serviceRepo:        serviceRepo,
-		zoneRepo:           zoneRepo,
-		transactionManager: transactionManager,
+		repo:                   repo,
+		conditionRepo:          conditionRepo,
+		surchargeConditionRepo: surchargeConditionRepo,
+		serviceRepo:            serviceRepo,
+		zoneRepo:               zoneRepo,
+		transactionManager:     transactionManager,
 	}
 }
 
@@ -61,6 +69,17 @@ func (u *surchargeRuleUsecase) Create(ctx context.Context, adminID uuid.UUID, re
 	}
 	zoneID, err := uuid.Parse(req.ZoneID)
 	if err != nil {
+		return nil, err
+	}
+	if err := u.validateConditionIDs(ctx, req.ConditionIDs); err != nil {
+		return nil, err
+	}
+	ruleToValidate := &websystem_model.SurchargeRule{
+		Amount:   req.Amount,
+		Unit:     req.Unit,
+		Priority: int32(req.Priority),
+	}
+	if err := ruleToValidate.ValidateSurchargeRule(); err != nil {
 		return nil, err
 	}
 	params := pgdb.CreateSurchargeRuleParams{
@@ -94,14 +113,36 @@ func (u *surchargeRuleUsecase) Create(ctx context.Context, adminID uuid.UUID, re
 					return nil, err
 				}
 			}
-			return u.repo.Create(txCtx, params)
+
+			created, err := u.repo.Create(txCtx, params)
+			if err != nil {
+				return nil, err
+			}
+
+			// handle conditions pivot
+			if u.conditionRepo != nil && len(req.ConditionIDs) > 0 {
+				condUUIDs, err := parse.ParseUUIDStrings(req.ConditionIDs)
+				if err != nil {
+					return nil, err
+				}
+				if err := u.conditionRepo.AddConditions(txCtx, created.ID, condUUIDs); err != nil {
+					return nil, err
+				}
+			}
+
+			return created, nil
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	item := serviceTransformer.ToSurchargeRuleItemDto(rule)
-	return &item, nil
+
+	item, err := u.enrichRuleWithConditions(ctx, rule)
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
 }
 
 func (u *surchargeRuleUsecase) GetByID(ctx context.Context, id uuid.UUID) (*dto.SurchargeRuleItemDto, error) {
@@ -115,8 +156,11 @@ func (u *surchargeRuleUsecase) GetByID(ctx context.Context, id uuid.UUID) (*dto.
 		}
 		return nil, err
 	}
-	item := serviceTransformer.ToSurchargeRuleItemDto(rule)
-	return &item, nil
+	item, err := u.enrichRuleWithConditions(ctx, rule)
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
 }
 
 func (u *surchargeRuleUsecase) List(ctx context.Context, serviceID, zoneID *uuid.UUID) (*dto.ListSurchargeRulesResponseDto, error) {
@@ -132,7 +176,11 @@ func (u *surchargeRuleUsecase) List(ctx context.Context, serviceID, zoneID *uuid
 	}
 	items := make([]dto.SurchargeRuleItemDto, 0, len(rules))
 	for _, r := range rules {
-		items = append(items, serviceTransformer.ToSurchargeRuleItemDto(r))
+		item, err := u.enrichRuleWithConditions(ctx, r)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, *item)
 	}
 	return &dto.ListSurchargeRulesResponseDto{
 		Items: items,
@@ -154,6 +202,18 @@ func (u *surchargeRuleUsecase) Update(ctx context.Context, adminID uuid.UUID, id
 	}
 	zoneID, err := uuid.Parse(req.ZoneID)
 	if err != nil {
+		return nil, err
+	}
+	if err := u.validateConditionIDs(ctx, req.ConditionIDs); err != nil {
+		return nil, err
+	}
+	// Entity business rule: validate trước khi persist (Clean Architecture)
+	ruleToValidate := &websystem_model.SurchargeRule{
+		Amount:   req.Amount,
+		Unit:     req.Unit,
+		Priority: int32(req.Priority),
+	}
+	if err := ruleToValidate.ValidateSurchargeRule(); err != nil {
 		return nil, err
 	}
 	params := pgdb.UpdateSurchargeRuleParams{
@@ -187,6 +247,7 @@ func (u *surchargeRuleUsecase) Update(ctx context.Context, adminID uuid.UUID, id
 					return nil, err
 				}
 			}
+
 			updated, err := u.repo.Update(txCtx, params)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
@@ -194,14 +255,34 @@ func (u *surchargeRuleUsecase) Update(ctx context.Context, adminID uuid.UUID, id
 				}
 				return nil, err
 			}
+
+			// reset & re-add conditions in pivot
+			if u.conditionRepo != nil {
+				if err := u.conditionRepo.DeleteBySurchargeID(txCtx, id); err != nil {
+					return nil, err
+				}
+				if len(req.ConditionIDs) > 0 {
+					condUUIDs, err := parse.ParseUUIDStrings(req.ConditionIDs)
+					if err != nil {
+						return nil, err
+					}
+					if err := u.conditionRepo.AddConditions(txCtx, id, condUUIDs); err != nil {
+						return nil, err
+					}
+				}
+			}
+
 			return updated, nil
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	item := serviceTransformer.ToSurchargeRuleItemDto(rule)
-	return &item, nil
+	item, err := u.enrichRuleWithConditions(ctx, rule)
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
 }
 
 func (u *surchargeRuleUsecase) Delete(ctx context.Context, id uuid.UUID) error {
@@ -209,4 +290,76 @@ func (u *surchargeRuleUsecase) Delete(ctx context.Context, id uuid.UUID) error {
 		return ErrSurchargeRuleNotFound
 	}
 	return u.repo.Delete(ctx, id)
+}
+
+func (u *surchargeRuleUsecase) validateConditionIDs(ctx context.Context, conditionIDs []string) error {
+	if len(conditionIDs) == 0 || u.surchargeConditionRepo == nil {
+		return nil
+	}
+	condUUIDs, err := parse.ParseUUIDStrings(conditionIDs)
+	if err != nil {
+		return err
+	}
+	for _, id := range condUUIDs {
+		_, err := u.surchargeConditionRepo.GetByID(ctx, id)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrSurchargeConditionNotFound
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (u *surchargeRuleUsecase) enrichRuleWithConditions(ctx context.Context, rule *websystem_model.SurchargeRule) (*dto.SurchargeRuleItemDto, error) {
+	if rule == nil {
+		return nil, nil
+	}
+
+	var (
+		svc  *websystem_model.Service
+		zone *model.Zone
+	)
+
+	if u.serviceRepo != nil {
+		if s, err := u.serviceRepo.GetServiceByID(ctx, rule.ServiceID); err == nil {
+			svc = s
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+	}
+
+	if u.zoneRepo != nil {
+		if z, err := u.zoneRepo.GetZoneByID(ctx, rule.ZoneID); err == nil {
+			zone = z
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+	}
+
+	if u.conditionRepo == nil || u.surchargeConditionRepo == nil {
+		item := serviceTransformer.ToSurchargeRuleItemDtoWithConditions(rule, nil, nil, svc, zone)
+		return &item, nil
+	}
+
+	ids, err := u.conditionRepo.GetConditionIDsBySurchargeID(ctx, rule.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	conditions := make([]*websystem_model.SurchargeCondition, 0, len(ids))
+	for _, id := range ids {
+		cond, err := u.surchargeConditionRepo.GetByID(ctx, id)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			return nil, err
+		}
+		conditions = append(conditions, cond)
+	}
+
+	item := serviceTransformer.ToSurchargeRuleItemDtoWithConditions(rule, ids, conditions, svc, zone)
+	return &item, nil
 }

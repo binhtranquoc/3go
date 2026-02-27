@@ -27,6 +27,7 @@ const (
 	DistancePricingRuleRepoDIName = "distance_pricing_rule_repo_di"
 	SurchargeConditionRepoDIName  = "surcharge_condition_repo_di"
 	SurchargeRuleRepoDIName       = "surcharge_rule_repo_di"
+	SurchargeRuleConditionRepoDIName = "surcharge_rule_condition_repo_di"
 	PackageSizePricingRepoDIName  = "package_size_pricing_repo_di"
 	SystemAdminRepoDIName                = "system_admin_repo_di"
 	SystemLoginHistoryRepoDIName         = "system_login_history_repo_di"
@@ -185,6 +186,15 @@ func buildRepositories() error {
 		},
 	}
 
+	surchargeRuleConditionDef := di.Def{
+		Name:  SurchargeRuleConditionRepoDIName,
+		Scope: di.App,
+		Build: func(ctn di.Container) (interface{}, error) {
+			pool := ctn.Get(PostgresPoolDIName).(*pgxpool.Pool)
+			return setting_repo.NewSurchargeRuleConditionRepository(pool), nil
+		},
+	}
+
 	packageSizePricingDef := di.Def{
 		Name:  PackageSizePricingRepoDIName,
 		Scope: di.App,
@@ -301,6 +311,7 @@ func buildRepositories() error {
 		distancePricingRuleDef,
 		surchargeConditionDef,
 		surchargeRuleDef,
+		surchargeRuleConditionDef,
 		packageSizePricingDef,
 		systemAdminDef,
 		systemLoginHistoryDef,

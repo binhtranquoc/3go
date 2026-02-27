@@ -14,6 +14,7 @@ func ToSurchargeConditionItemDto(c *websystem.SurchargeCondition) dto.SurchargeC
 	return dto.SurchargeConditionItemDto{
 		ID:            c.ID.String(),
 		Code:          c.Code,
+		Name:          c.Name,
 		ConditionType: c.ConditionType,
 		Config:        json.RawMessage(c.Config),
 		IsActive:      c.IsActive,

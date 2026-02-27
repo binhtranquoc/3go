@@ -47,10 +47,7 @@ func (s *surchargeRuleController) Create(c *gin.Context) *common.ResponseData {
 	}
 	result, err := s.uc.Create(c.Request.Context(), adminID, &req)
 	if err != nil {
-		if errors.Is(err, usecase.ErrServiceNotFound) {
-			return common.ErrorResponse(common.StatusBadRequest, []string{err.Error()})
-		}
-		if errors.Is(err, usecase.ErrZoneNotFound) {
+		if errors.Is(err, usecase.ErrServiceNotFound) || errors.Is(err, usecase.ErrZoneNotFound) || errors.Is(err, usecase.ErrSurchargeConditionNotFound) {
 			return common.ErrorResponse(common.StatusBadRequest, []string{err.Error()})
 		}
 		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
@@ -115,7 +112,7 @@ func (s *surchargeRuleController) Update(c *gin.Context) *common.ResponseData {
 		if errors.Is(err, usecase.ErrSurchargeRuleNotFound) {
 			return common.ErrorResponse(common.StatusNotFound, []string{err.Error()})
 		}
-		if errors.Is(err, usecase.ErrServiceNotFound) || errors.Is(err, usecase.ErrZoneNotFound) {
+		if errors.Is(err, usecase.ErrServiceNotFound) || errors.Is(err, usecase.ErrZoneNotFound) || errors.Is(err, usecase.ErrSurchargeConditionNotFound) {
 			return common.ErrorResponse(common.StatusBadRequest, []string{err.Error()})
 		}
 		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})

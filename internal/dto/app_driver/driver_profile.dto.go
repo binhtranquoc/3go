@@ -3,6 +3,8 @@ package app_driver
 import (
 	"time"
 
+	dto_common "go-structure/internal/dto/common"
+
 	"github.com/google/uuid"
 )
 
@@ -43,18 +45,19 @@ type (
 	}
 
 	DriverProfileItemDto struct {
-		ID                   uuid.UUID  `json:"id"`
-		AccountID            uuid.UUID  `json:"account_id"`
-		Phone                string     `json:"phone"`
-		FullName             string     `json:"full_name"`
-		DateOfBirth          *time.Time `json:"date_of_birth,omitempty"`
-		Gender               string     `json:"gender,omitempty"`
-		Address              string     `json:"address,omitempty"`
-		GlobalStatus         string     `json:"global_status"`
-		Rating               float64    `json:"rating"`
-		TotalCompletedOrders int32      `json:"total_completed_orders"`
-		CreatedAt            time.Time  `json:"created_at"`
-		UpdatedAt            time.Time  `json:"updated_at"`
+		ID               uuid.UUID  `json:"id"`
+		AccountID        uuid.UUID  `json:"account_id"`
+		Phone            string     `json:"phone"`
+		FullName         string     `json:"full_name"`
+		DateOfBirth      *time.Time `json:"date_of_birth,omitempty"`
+		Gender           string     `json:"gender,omitempty"`
+		Address          string     `json:"address,omitempty"`
+		GlobalStatus     string     `json:"global_status"`
+		GlobalStatusText string     `json:"global_status_text"`
+		Rating           float64    `json:"rating"`
+		TotalCompletedOrders int32  `json:"total_completed_orders"`
+		CreatedAt        time.Time  `json:"created_at"`
+		UpdatedAt        time.Time  `json:"updated_at"`
 	}
 
 	DriverLoginResponseDto struct {
@@ -69,5 +72,18 @@ type (
 		Lat    float64 `json:"lat" binding:"required"`
 		Lng    float64 `json:"lng" binding:"required"`
 		Status string  `json:"status" binding:"required"` // ví dụ: "idle", "busy"
+	}
+
+	UpdateDriverProfileRequestDto struct {
+		FullName     string  `json:"full_name" binding:"required"`
+		DateOfBirth  *string `json:"date_of_birth"`
+		Gender       string  `json:"gender"`
+		Address      string  `json:"address"`
+		GlobalStatus string  `json:"global_status" binding:"omitempty,oneof=PENDING_PROFILE DOCUMENT_INCOMPLETE PENDING_VERIFICATION ACTIVE SUSPENDED REJECTED"`
+	}
+
+	ListDriverProfilesResponseDto struct {
+		Items      []DriverProfileItemDto    `json:"items"`
+		Pagination dto_common.PaginationMeta `json:"pagination"`
 	}
 )

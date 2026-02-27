@@ -2,6 +2,7 @@ package app_driver
 
 import (
 	"errors"
+	"strconv"
 
 	"go-structure/internal/common"
 	"go-structure/internal/controller"
@@ -23,6 +24,12 @@ type (
 		GoOnline(c *gin.Context) *common.ResponseData
 		GoOffline(c *gin.Context) *common.ResponseData
 		PingOnline(c *gin.Context) *common.ResponseData
+
+		Create(c *gin.Context) *common.ResponseData
+		List(c *gin.Context) *common.ResponseData
+		GetByID(c *gin.Context) *common.ResponseData
+		Update(c *gin.Context) *common.ResponseData
+		Delete(c *gin.Context) *common.ResponseData
 	}
 
 	driverProfileController struct {
@@ -176,4 +183,69 @@ func (ctrl *driverProfileController) PingOnline(c *gin.Context) *common.Response
 	return common.SuccessResponse(common.StatusOK, map[string]string{
 		"message": "Driver ping updated",
 	})
+}
+
+func (ctrl *driverProfileController) Create(c *gin.Context) *common.ResponseData {
+	return ctrl.RegisterDriver(c)
+}
+
+func (ctrl *driverProfileController) List(c *gin.Context) *common.ResponseData {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.DefaultQuery("search", "")
+
+	result, err := ctrl.uc.List(c.Request.Context(), page, limit, search)
+	if err != nil {
+		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+	}
+	return common.SuccessResponse(common.StatusOK, result)
+}
+
+func (ctrl *driverProfileController) GetByID(c *gin.Context) *common.ResponseData {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return common.ErrorResponse(common.StatusBadRequest, []string{"id không hợp lệ"})
+	}
+	result, err := ctrl.uc.GetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, usecase.ErrDriverNotFound) {
+			return common.ErrorResponse(common.StatusNotFound, []string{err.Error()})
+		}
+		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+	}
+	return common.SuccessResponse(common.StatusOK, result)
+}
+
+func (ctrl *driverProfileController) Update(c *gin.Context) *common.ResponseData {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return common.ErrorResponse(common.StatusBadRequest, []string{"id không hợp lệ"})
+	}
+	var req dto.UpdateDriverProfileRequestDto
+	if err := c.ShouldBindJSON(&req); err != nil {
+		msgs := validator.Translate(err)
+		return common.ErrorResponse(common.StatusUnprocessableEntity, msgs)
+	}
+	result, err := ctrl.uc.UpdateProfile(c.Request.Context(), id, &req)
+	if err != nil {
+		if errors.Is(err, usecase.ErrDriverNotFound) {
+			return common.ErrorResponse(common.StatusNotFound, []string{err.Error()})
+		}
+		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+	}
+	return common.SuccessResponse(common.StatusOK, result)
+}
+
+func (ctrl *driverProfileController) Delete(c *gin.Context) *common.ResponseData {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return common.ErrorResponse(common.StatusBadRequest, []string{"id không hợp lệ"})
+	}
+	if err := ctrl.uc.DeleteProfile(c.Request.Context(), id); err != nil {
+		if errors.Is(err, usecase.ErrDriverNotFound) {
+			return common.ErrorResponse(common.StatusNotFound, []string{err.Error()})
+		}
+		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+	}
+	return common.SuccessResponse(common.StatusOK, gin.H{"message": "Đã xóa hồ sơ tài xế"})
 }

@@ -11,21 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const addSurchargeRuleConditions = `-- name: AddSurchargeRuleConditions :exec
-INSERT INTO system_surcharge_rule_conditions (surcharge_id, condition_id)
-SELECT $1, UNNEST($2::uuid[])
-`
-
-type AddSurchargeRuleConditionsParams struct {
-	SurchargeID uuid.UUID   `json:"surcharge_id"`
-	Column2     []uuid.UUID `json:"column_2"`
-}
-
-func (q *Queries) AddSurchargeRuleConditions(ctx context.Context, arg AddSurchargeRuleConditionsParams) error {
-	_, err := q.db.Exec(ctx, addSurchargeRuleConditions, arg.SurchargeID, arg.Column2)
-	return err
-}
-
 const deleteSurchargeRuleConditionsBySurchargeID = `-- name: DeleteSurchargeRuleConditionsBySurchargeID :exec
 DELETE FROM system_surcharge_rule_conditions
 WHERE surcharge_id = $1
@@ -60,4 +45,19 @@ func (q *Queries) GetConditionIDsBySurchargeID(ctx context.Context, surchargeID 
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertSurchargeRuleCondition = `-- name: InsertSurchargeRuleCondition :exec
+INSERT INTO system_surcharge_rule_conditions (surcharge_id, condition_id)
+VALUES ($1, $2)
+`
+
+type InsertSurchargeRuleConditionParams struct {
+	SurchargeID uuid.UUID `json:"surcharge_id"`
+	ConditionID uuid.UUID `json:"condition_id"`
+}
+
+func (q *Queries) InsertSurchargeRuleCondition(ctx context.Context, arg InsertSurchargeRuleConditionParams) error {
+	_, err := q.db.Exec(ctx, insertSurchargeRuleCondition, arg.SurchargeID, arg.ConditionID)
+	return err
 }

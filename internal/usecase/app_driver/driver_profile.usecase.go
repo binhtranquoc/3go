@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"time"
 
+	common "go-structure/internal/common"
+	"go-structure/internal/constants"
 	dto "go-structure/internal/dto/app_driver"
+	dto_common "go-structure/internal/dto/common"
 	"go-structure/internal/helper/database"
 	pgdb "go-structure/internal/orm/db/postgres"
 	"go-structure/internal/repository"
@@ -21,6 +24,7 @@ import (
 	"go-structure/pkg/validator"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -54,6 +58,11 @@ type (
 		GoOnline(ctx context.Context, accountID uuid.UUID, req *dto.DriverLocationStatusRequestDto) error
 		GoOffline(ctx context.Context, accountID uuid.UUID) error
 		PingOnline(ctx context.Context, accountID uuid.UUID, req *dto.DriverLocationStatusRequestDto) error
+
+		GetByID(ctx context.Context, id uuid.UUID) (*dto.DriverProfileItemDto, error)
+		List(ctx context.Context, page, limit int, search string) (*dto.ListDriverProfilesResponseDto, error)
+		UpdateProfile(ctx context.Context, id uuid.UUID, req *dto.UpdateDriverProfileRequestDto) (*dto.DriverProfileItemDto, error)
+		DeleteProfile(ctx context.Context, id uuid.UUID) error
 	}
 
 	driverProfileUsecase struct {
@@ -491,5 +500,157 @@ func (u *driverProfileUsecase) logDriverLoginHistory(ctx context.Context, accoun
 		IpAddress:     ip,
 		UserAgent:     userAgent,
 	})
+	return err
+}
+
+func (u *driverProfileUsecase) GetByID(ctx context.Context, id uuid.UUID) (*dto.DriverProfileItemDto, error) {
+	profile, err := u.driverProfileRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if profile == nil {
+		return nil, ErrDriverNotFound
+	}
+
+	account, err := u.accountRepo.GetById(ctx, profile.AccountID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	item := appdrivertransformer.ToDriverProfileItemDto(account, profile)
+	return &item, nil
+}
+
+func (u *driverProfileUsecase) List(ctx context.Context, page, limit int, search string) (*dto.ListDriverProfilesResponseDto, error) {
+	if page < 1 {
+		page = constants.DefaultPage
+	}
+	if limit < 1 || limit > constants.MaxLimit {
+		limit = constants.DefaultLimit
+	}
+	offset := int32((page - 1) * limit)
+	limit32 := int32(limit)
+
+	total, err := u.driverProfileRepo.Count(ctx, search)
+	if err != nil {
+		return nil, err
+	}
+	profiles, err := u.driverProfileRepo.List(ctx, search, limit32, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]dto.DriverProfileItemDto, 0, len(profiles))
+	for _, p := range profiles {
+		account, err := u.accountRepo.GetById(ctx, p.AccountID.String())
+		if err != nil {
+			return nil, err
+		}
+		item := appdrivertransformer.ToDriverProfileItemDto(account, p)
+		items = append(items, item)
+	}
+
+	return &dto.ListDriverProfilesResponseDto{
+		Items: items,
+		Pagination: dto_common.PaginationMeta{
+			Page:  page,
+			Limit: limit,
+			Total: total,
+		},
+	}, nil
+}
+
+func parseDriverProfileStatus(s string) pgdb.NullDriverProfileStatus {
+	if s == "" {
+		return pgdb.NullDriverProfileStatus{}
+	}
+
+	status := pgdb.DriverProfileStatusPENDINGPROFILE
+	switch s {
+	case "PENDING_PROFILE":
+		status = pgdb.DriverProfileStatusPENDINGPROFILE
+	case "DOCUMENT_INCOMPLETE":
+		status = pgdb.DriverProfileStatusDOCUMENTINCOMPLETE
+	case "PENDING_VERIFICATION":
+		status = pgdb.DriverProfileStatusPENDINGVERIFICATION
+	case "ACTIVE":
+		status = pgdb.DriverProfileStatusACTIVE
+	case "SUSPENDED":
+		status = pgdb.DriverProfileStatusSUSPENDED
+	case "REJECTED":
+		status = pgdb.DriverProfileStatusREJECTED
+	}
+
+	return pgdb.NullDriverProfileStatus{
+		DriverProfileStatus: status,
+		Valid:               true,
+	}
+}
+
+func (u *driverProfileUsecase) UpdateProfile(ctx context.Context, id uuid.UUID, req *dto.UpdateDriverProfileRequestDto) (*dto.DriverProfileItemDto, error) {
+	existing, err := u.driverProfileRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, ErrDriverNotFound
+	}
+
+	arg := pgdb.UpdateDriverProfileParams{
+		ID: id,
+	}
+
+	if req.FullName != "" {
+		arg.FullName = pgtype.Text{String: req.FullName, Valid: true}
+	}
+	arg.DateOfBirth = common.ParseYYYYMMDDToPgDate(req.DateOfBirth)
+	if req.Gender != "" {
+		arg.Gender = pgtype.Text{String: req.Gender, Valid: true}
+	}
+	if req.Address != "" {
+		arg.Address = pgtype.Text{String: req.Address, Valid: true}
+	}
+	if req.GlobalStatus != "" {
+		arg.GlobalStatus = parseDriverProfileStatus(req.GlobalStatus)
+	}
+
+	updated, err := database.WithTransaction(
+		u.txManager,
+		ctx,
+		func(txCtx context.Context) (*appdrivermodel.DriverProfile, error) {
+			return u.driverProfileRepo.Update(txCtx, arg)
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if updated == nil {
+		return nil, ErrDriverNotFound
+	}
+
+	account, err := u.accountRepo.GetById(ctx, updated.AccountID.String())
+	if err != nil {
+		return nil, err
+	}
+	item := appdrivertransformer.ToDriverProfileItemDto(account, updated)
+	return &item, nil
+}
+
+func (u *driverProfileUsecase) DeleteProfile(ctx context.Context, id uuid.UUID) error {
+	existing, err := u.driverProfileRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrDriverNotFound
+	}
+
+	_, err = database.WithTransaction(
+		u.txManager,
+		ctx,
+		func(txCtx context.Context) (struct{}, error) {
+			return struct{}{}, u.driverProfileRepo.Delete(txCtx, id)
+		},
+	)
 	return err
 }

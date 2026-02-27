@@ -52,12 +52,13 @@ func (u *surchargeConditionUsecase) Create(ctx context.Context, req *dto.CreateS
 		return nil, nil
 	}
 
-	if err := dto.ValidateConditionConfig(dto.ConditionType(req.ConditionType), req.Config); err != nil {
+	if err := websystem_model.ValidateConditionConfig(req.ConditionType, req.Config); err != nil {
 		return nil, err
 	}
 
 	params := pgdb.CreateSurchargeConditionParams{
 		Code:          req.Code,
+		Name:          req.Name,
 		ConditionType: req.ConditionType,
 		Config:        req.Config,
 		IsActive:      pgtype.Bool{Bool: req.IsActive, Valid: true},
@@ -127,13 +128,14 @@ func (u *surchargeConditionUsecase) Update(ctx context.Context, id uuid.UUID, re
 		return nil, ErrSurchargeConditionNotFound
 	}
 
-	if err := dto.ValidateConditionConfig(dto.ConditionType(req.ConditionType), req.Config); err != nil {
+	if err := websystem_model.ValidateConditionConfig(req.ConditionType, req.Config); err != nil {
 		return nil, err
 	}
 
 	params := pgdb.UpdateSurchargeConditionParams{
 		ID:            id,
 		Code:          req.Code,
+		Name:          req.Name,
 		ConditionType: req.ConditionType,
 		Config:        req.Config,
 		IsActive:      pgtype.Bool{Bool: req.IsActive, Valid: true},

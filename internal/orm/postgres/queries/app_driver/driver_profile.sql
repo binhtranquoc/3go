@@ -31,3 +31,20 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id') AND deleted_at IS NULL
 RETURNING *;
+
+-- name: ListDriverProfiles :many
+SELECT * FROM driver_profiles
+WHERE deleted_at IS NULL
+  AND ($1 = '' OR full_name ILIKE '%' || $1 || '%')
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountDriverProfiles :one
+SELECT COUNT(*) FROM driver_profiles
+WHERE deleted_at IS NULL
+  AND ($1 = '' OR full_name ILIKE '%' || $1 || '%');
+
+-- name: DeleteDriverProfile :exec
+UPDATE driver_profiles
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND deleted_at IS NULL;

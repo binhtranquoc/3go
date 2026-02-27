@@ -1,9 +1,16 @@
 package websystem
 
 import (
+	"fmt"
+
 	"go-structure/internal/repository/model"
 
 	"github.com/google/uuid"
+)
+
+const (
+	SurchargeUnitPercent = "percent"
+	SurchargeUnitFixed   = "fixed"
 )
 
 type SurchargeRule struct {
@@ -17,4 +24,23 @@ type SurchargeRule struct {
 	CreatedBy uuid.UUID `json:"created_by"`
 	UpdatedBy uuid.UUID `json:"updated_by"`
 	model.BaseModel
+}
+
+func (surchargeRule *SurchargeRule) ValidateSurchargeRule() error {
+	if surchargeRule == nil {
+		return fmt.Errorf("surcharge rule is nil")
+	}
+	if surchargeRule.Amount < 0 {
+		return fmt.Errorf("amount phải >= 0")
+	}
+	if surchargeRule.Unit == "" {
+		return fmt.Errorf("unit không được để trống")
+	}
+	if surchargeRule.Unit != SurchargeUnitPercent && surchargeRule.Unit != SurchargeUnitFixed {
+		return fmt.Errorf("unit phải là %q hoặc %q", SurchargeUnitPercent, SurchargeUnitFixed)
+	}
+	if surchargeRule.Priority < 0 {
+		return fmt.Errorf("priority phải >= 0")
+	}
+	return nil
 }

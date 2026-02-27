@@ -1,6 +1,6 @@
 -- name: CreateSurchargeCondition :one
-INSERT INTO system_surcharge_conditions (code, condition_type, config, is_active)
-VALUES ($1, $2, $3, $4)
+INSERT INTO system_surcharge_conditions (code, name, condition_type, config, is_active)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetSurchargeConditionByID :one
@@ -15,9 +15,10 @@ ORDER BY code ASC;
 UPDATE system_surcharge_conditions
 SET
   code = $2,
-  condition_type = $3,
-  config = $4,
-  is_active = $5
+  name = $3,
+  condition_type = $4,
+  config = $5,
+  is_active = $6
 WHERE id = $1
 RETURNING *;
 

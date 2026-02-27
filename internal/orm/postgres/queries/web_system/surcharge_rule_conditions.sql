@@ -1,6 +1,6 @@
--- name: AddSurchargeRuleConditions :exec
+-- name: InsertSurchargeRuleCondition :exec
 INSERT INTO system_surcharge_rule_conditions (surcharge_id, condition_id)
-SELECT $1, UNNEST($2::uuid[]);
+VALUES ($1, $2);
 
 -- name: DeleteSurchargeRuleConditionsBySurchargeID :exec
 DELETE FROM system_surcharge_rule_conditions

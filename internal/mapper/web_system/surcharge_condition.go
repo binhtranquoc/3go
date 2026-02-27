@@ -12,6 +12,7 @@ func ToSurchargeConditionFromRow(row *pgdb.SystemSurchargeCondition) *websystem.
 	return &websystem.SurchargeCondition{
 		ID:            row.ID,
 		Code:          row.Code,
+		Name:          row.Name,
 		ConditionType: row.ConditionType,
 		Config:        row.Config,
 		IsActive:      row.IsActive.Bool,

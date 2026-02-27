@@ -184,10 +184,19 @@ func buildUsecases() error {
 		Scope: di.App,
 		Build: func(ctn di.Container) (interface{}, error) {
 			repo := ctn.Get(SurchargeRuleRepoDIName).(settingRepository.ISurchargeRuleRepository)
+			conditionRepo := ctn.Get(SurchargeRuleConditionRepoDIName).(settingRepository.ISurchargeRuleConditionRepository)
+			surchargeConditionRepo := ctn.Get(SurchargeConditionRepoDIName).(settingRepository.ISurchargeConditionRepository)
 			serviceRepo := ctn.Get(ServiceRepoDIName).(settingRepository.IServiceRepository)
 			zoneRepo := ctn.Get(ZoneRepoDIName).(account_repo.IZoneRepository)
 			transactionManager := ctn.Get(TransactionManagerDIName).(database.TransactionManager)
-			return websystem_usecase.NewSurchargeRuleUsecase(repo, serviceRepo, zoneRepo, transactionManager), nil
+			return websystem_usecase.NewSurchargeRuleUsecase(
+				repo,
+				conditionRepo,
+				surchargeConditionRepo,
+				serviceRepo,
+				zoneRepo,
+				transactionManager,
+			), nil
 		},
 	}
 

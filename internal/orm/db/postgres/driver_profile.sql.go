@@ -12,6 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countDriverProfiles = `-- name: CountDriverProfiles :one
+SELECT COUNT(*) FROM driver_profiles
+WHERE deleted_at IS NULL
+  AND ($1 = '' OR full_name ILIKE '%' || $1 || '%')
+`
+
+func (q *Queries) CountDriverProfiles(ctx context.Context, dollar_1 interface{}) (int64, error) {
+	row := q.db.QueryRow(ctx, countDriverProfiles, dollar_1)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createDriverProfile = `-- name: CreateDriverProfile :one
 INSERT INTO driver_profiles (
     account_id,
@@ -59,6 +72,17 @@ func (q *Queries) CreateDriverProfile(ctx context.Context, arg CreateDriverProfi
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const deleteDriverProfile = `-- name: DeleteDriverProfile :exec
+UPDATE driver_profiles
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) DeleteDriverProfile(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDriverProfile, id)
+	return err
 }
 
 const getDriverProfileByAccountID = `-- name: GetDriverProfileByAccountID :one
@@ -111,6 +135,53 @@ func (q *Queries) GetDriverProfileByID(ctx context.Context, id uuid.UUID) (Drive
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const listDriverProfiles = `-- name: ListDriverProfiles :many
+SELECT id, account_id, full_name, date_of_birth, gender, address, global_status, rating, total_completed_orders, created_at, updated_at, deleted_at FROM driver_profiles
+WHERE deleted_at IS NULL
+  AND ($1 = '' OR full_name ILIKE '%' || $1 || '%')
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListDriverProfilesParams struct {
+	Column1 interface{} `json:"column_1"`
+	Limit   int32       `json:"limit"`
+	Offset  int32       `json:"offset"`
+}
+
+func (q *Queries) ListDriverProfiles(ctx context.Context, arg ListDriverProfilesParams) ([]DriverProfile, error) {
+	rows, err := q.db.Query(ctx, listDriverProfiles, arg.Column1, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DriverProfile{}
+	for rows.Next() {
+		var i DriverProfile
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.FullName,
+			&i.DateOfBirth,
+			&i.Gender,
+			&i.Address,
+			&i.GlobalStatus,
+			&i.Rating,
+			&i.TotalCompletedOrders,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateDriverProfile = `-- name: UpdateDriverProfile :one
