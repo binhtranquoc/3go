@@ -1,5 +1,5 @@
 pipeline {
-
+    agent none
     environment {
         IMAGE_NAME = "octotechvn/gogogo-api"
         STACK_NAME = "gogogo"
