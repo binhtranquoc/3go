@@ -9,9 +9,6 @@ pipeline {
 
     stages {
 
-        // =========================
-        // DEV PIPELINE
-        // =========================
         stage('DEV Pipeline') {
             when { branch 'dev' }
 
@@ -62,9 +59,6 @@ pipeline {
             }
         }
 
-        // =========================
-        // PROD PIPELINE
-        // =========================
         stage('PROD Pipeline') {
             when { branch 'master' }
 
