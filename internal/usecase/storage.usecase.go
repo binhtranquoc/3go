@@ -49,6 +49,7 @@ type IStorageUsecase interface {
 	Upload(ctx context.Context, in UploadInput) (*UploadResult, error)
 	List(ctx context.Context, in ListInput) (*ListResult, error)
 	GeneratePresignedGet(ctx context.Context, bucket, key string, expire time.Duration) (string, error)
+	UploadDriverDocument(ctx context.Context, in UploadInput, driverProfileID uuid.UUID) (*UploadResult, error)
 }
 
 type storageUsecase struct {
@@ -79,6 +80,21 @@ func (u *storageUsecase) Upload(ctx context.Context, in UploadInput) (*UploadRes
 	} else {
 		key = uploadDirPrefix + "/" + path + "/" + dmy + "/" + name
 	}
+
+	if err := u.adapter.PutObject(ctx, in.Bucket, key, in.Body, in.Size, in.ContentType); err != nil {
+		return nil, err
+	}
+	return &UploadResult{Key: key}, nil
+}
+
+func (u *storageUsecase) UploadDriverDocument(ctx context.Context, in UploadInput, driverProfileID uuid.UUID) (*UploadResult, error) {
+	now := time.Now()
+	dmy := now.Format(dateLayoutYYYYMMDD)
+	ext := filepath.Ext(in.OriginalFilename)
+	if ext == "" {
+		ext = ".bin"
+	}
+	key := uploadDirPrefix + "/document/" + dmy + "/" + driverProfileID.String() + "/" + uuid.New().String() + ext
 
 	if err := u.adapter.PutObject(ctx, in.Bucket, key, in.Body, in.Size, in.ContentType); err != nil {
 		return nil, err

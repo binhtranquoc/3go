@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"go-structure/internal/helper/database"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	"go-structure/internal/repository/model"
 
 	"github.com/google/uuid"

@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	websystem "go-structure/internal/repository/model/web_system"
 )
 

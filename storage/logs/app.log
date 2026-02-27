@@ -12,3 +12,15 @@
 {"level":"INFO","timestamp":"2026-02-26T22:43:10.741+0700","file":"server/main.go:71","message":"Server exited properly"}
 {"level":"INFO","timestamp":"2026-02-26T22:50:05.192+0700","file":"./main.go:62","message":"Shutting down server..."}
 {"level":"INFO","timestamp":"2026-02-26T22:50:05.215+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T15:37:35.252+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T15:37:35.272+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T15:51:41.469+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T15:51:41.487+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T15:56:23.340+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T15:56:23.375+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T16:04:37.358+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T16:04:37.380+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T16:21:01.129+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T16:21:01.141+0700","file":"./main.go:71","message":"Server exited properly"}
+{"level":"INFO","timestamp":"2026-02-27T21:59:43.619+0700","file":"./main.go:62","message":"Shutting down server..."}
+{"level":"INFO","timestamp":"2026-02-27T21:59:43.623+0700","file":"./main.go:71","message":"Server exited properly"}

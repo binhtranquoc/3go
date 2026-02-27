@@ -10,10 +10,21 @@ import (
 
 type (
 	DriverRegisterRequestDto struct {
-		Phone    string `json:"phone" binding:"required"`
-		FullName string `json:"full_name" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+			Phone      string      `json:"phone" binding:"required"`
+			FullName   string      `json:"full_name" binding:"required"`
+			Password   string      `json:"password" binding:"required"`
+			ServiceIDs []uuid.UUID `json:"service_ids" binding:"omitempty,dive,required"`
+		}
+
+		AdminCreateDriverProfileRequestDto struct {
+			Phone      string      `json:"phone" binding:"required"`
+			Password   string      `json:"password" binding:"required"`
+			FullName   string      `json:"full_name" binding:"required"`
+			DateOfBirth *string    `json:"date_of_birth"`
+			Gender     string      `json:"gender"`
+			Address    string      `json:"address"`
+			ServiceIDs []uuid.UUID `json:"service_ids" binding:"omitempty,dive,required"`
+		}
 
 	DriverRegisterResponseDto struct {
 		UserMessage string `json:"user_message" example:"Đăng ký tài khoản tài xế thành công, vui lòng kiểm tra điện thoại để nhận mã OTP"`

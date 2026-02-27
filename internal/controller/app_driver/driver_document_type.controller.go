@@ -85,19 +85,34 @@ func (ctrl *driverDocumentTypeController) List(c *gin.Context) *common.ResponseD
 }
 
 func (ctrl *driverDocumentTypeController) GetRequiredDocuments(c *gin.Context) *common.ResponseData {
-	serviceIDStr := c.Query("service_id")
-	if serviceIDStr == "" {
-		return common.ErrorResponse(common.StatusBadRequest, []string{"service_id là bắt buộc"})
+	var req struct {
+		ServiceIDs []uuid.UUID `json:"service_ids" binding:"required,min=1,dive,required"`
 	}
-	serviceID, err := uuid.Parse(serviceIDStr)
-	if err != nil {
-		return common.ErrorResponse(common.StatusBadRequest, []string{"service_id không hợp lệ"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		msgs := validator.Translate(err)
+		return common.ErrorResponse(common.StatusUnprocessableEntity, msgs)
 	}
-	result, err := ctrl.uc.GetRequiredByServiceID(c.Request.Context(), serviceID)
-	if err != nil {
-		return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+
+	allItems := make([]dto.DriverDocumentTypeItemDto, 0)
+	seen := make(map[string]struct{})
+
+	for _, sid := range req.ServiceIDs {
+		result, err := ctrl.uc.GetRequiredByServiceID(c.Request.Context(), sid)
+		if err != nil {
+			return common.ErrorResponse(common.StatusInternalServerError, []string{err.Error()})
+		}
+		for _, item := range result.Items {
+			if _, ok := seen[item.ID]; ok {
+				continue
+			}
+			seen[item.ID] = struct{}{}
+			allItems = append(allItems, item)
+		}
 	}
-	return common.SuccessResponse(common.StatusOK, result)
+
+	return common.SuccessResponse(common.StatusOK, dto.RequiredDriverDocumentTypesResponseDto{
+		Items: allItems,
+	})
 }
 
 func (ctrl *driverDocumentTypeController) Update(c *gin.Context) *common.ResponseData {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"go-structure/internal/helper/database"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"

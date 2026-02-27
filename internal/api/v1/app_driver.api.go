@@ -52,7 +52,7 @@ func (a *appDriverApi) InitAppDriverApi(
 ) {
 	publicDriver := router.Group("public/" + API_MODULE_APP_DRIVER)
 	{
-		publicDriver.GET("document-types/required", func(c *gin.Context) {
+		publicDriver.POST("document-types/required", func(c *gin.Context) {
 			resp := a.driverDocumentTypeController.GetRequiredDocuments(c)
 			c.JSON(http.StatusOK, resp)
 		})

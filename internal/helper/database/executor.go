@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

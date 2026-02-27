@@ -12,7 +12,6 @@ import (
 	dto "go-structure/internal/dto/app_driver"
 	dto_common "go-structure/internal/dto/common"
 	"go-structure/internal/helper/database"
-	pgdb "go-structure/internal/orm/db/postgres"
 	"go-structure/internal/repository"
 	appdriverrepo "go-structure/internal/repository/app_driver"
 	"go-structure/internal/repository/model"
@@ -21,6 +20,7 @@ import (
 	"go-structure/internal/usecase"
 	"go-structure/internal/utils/generate"
 	jwtutil "go-structure/internal/utils/jwt"
+	pgdb "go-structure/orm/db/postgres"
 	"go-structure/pkg/validator"
 
 	"github.com/google/uuid"
@@ -55,6 +55,8 @@ type (
 		VerifyDriverOtp(ctx context.Context, phone, code, ip, userAgent string) (*dto.DriverVerifyOtpResponseDto, error)
 		LoginDriver(ctx context.Context, req *dto.DriverLoginRequestDto, ip, userAgent string) (*dto.DriverLoginResponseDto, error)
 
+		AdminCreateDriverProfile(ctx context.Context, req *dto.AdminCreateDriverProfileRequestDto) (*dto.DriverProfileItemDto, error)
+
 		GoOnline(ctx context.Context, accountID uuid.UUID, req *dto.DriverLocationStatusRequestDto) error
 		GoOffline(ctx context.Context, accountID uuid.UUID) error
 		PingOnline(ctx context.Context, accountID uuid.UUID, req *dto.DriverLocationStatusRequestDto) error
@@ -67,6 +69,7 @@ type (
 
 	driverProfileUsecase struct {
 		driverProfileRepo    appdriverrepo.IDriverProfileRepository
+		driverServiceRepo    appdriverrepo.IDriverServiceRepository
 		accountRepo          repository.IAccountRepository
 		deviceRepo           repository.IDeviceRepository
 		accountAppDeviceRepo repository.IAccountAppDeviceRepository
@@ -82,6 +85,7 @@ type (
 
 func NewDriverProfileUsecase(
 	driverProfileRepo appdriverrepo.IDriverProfileRepository,
+	driverServiceRepo appdriverrepo.IDriverServiceRepository,
 	accountRepo repository.IAccountRepository,
 	deviceRepo repository.IDeviceRepository,
 	accountAppDeviceRepo repository.IAccountAppDeviceRepository,
@@ -94,6 +98,7 @@ func NewDriverProfileUsecase(
 ) IDriverProfileUsecase {
 	return &driverProfileUsecase{
 		driverProfileRepo:    driverProfileRepo,
+		driverServiceRepo:    driverServiceRepo,
 		accountRepo:          accountRepo,
 		deviceRepo:           deviceRepo,
 		accountAppDeviceRepo: accountAppDeviceRepo,
@@ -124,8 +129,14 @@ func (u *driverProfileUsecase) RegisterDriver(ctx context.Context, req *dto.Driv
 			if err := u.ensureDriverNotAlreadyRegistered(txCtx, account.ID); err != nil {
 				return "", err
 			}
-			if err := u.createDriverProfileRecord(txCtx, account.ID, req.FullName); err != nil {
+			driverID, err := u.createDriverProfileRecord(txCtx, account.ID, req.FullName)
+			if err != nil {
 				return "", err
+			}
+			if u.driverServiceRepo != nil && len(req.ServiceIDs) > 0 {
+				if err := u.driverServiceRepo.SetDriverServices(txCtx, driverID, req.ServiceIDs); err != nil {
+					return "", err
+				}
 			}
 			if u.otpUsecase != nil {
 				code, err := u.otpUsecase.CreateOTP(txCtx, req.Phone, usecase.OTPPurposeDriverRegister)
@@ -184,9 +195,12 @@ func (u *driverProfileUsecase) ensureDriverNotAlreadyRegistered(ctx context.Cont
 	return nil
 }
 
-func (u *driverProfileUsecase) createDriverProfileRecord(ctx context.Context, accountID uuid.UUID, fullName string) error {
-	_, err := u.driverProfileRepo.Create(ctx, accountID, fullName)
-	return err
+func (u *driverProfileUsecase) createDriverProfileRecord(ctx context.Context, accountID uuid.UUID, fullName string) (uuid.UUID, error) {
+	profile, err := u.driverProfileRepo.Create(ctx, accountID, fullName)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return profile.ID, nil
 }
 
 func (u *driverProfileUsecase) VerifyDriverOtp(ctx context.Context, phone, code, ip, userAgent string) (*dto.DriverVerifyOtpResponseDto, error) {
@@ -585,6 +599,80 @@ func parseDriverProfileStatus(s string) pgdb.NullDriverProfileStatus {
 		DriverProfileStatus: status,
 		Valid:               true,
 	}
+}
+
+func (u *driverProfileUsecase) AdminCreateDriverProfile(ctx context.Context, req *dto.AdminCreateDriverProfileRequestDto) (*dto.DriverProfileItemDto, error) {
+	if req == nil {
+		return nil, errors.New("request is required")
+	}
+
+	createdProfile, err := database.WithTransaction(
+		u.txManager,
+		ctx,
+		func(txCtx context.Context) (*appdrivermodel.DriverProfile, error) {
+			// Tạo hoặc lấy account theo phone (không đổi mật khẩu nếu account đã tồn tại)
+			accReq := &dto.DriverRegisterRequestDto{
+				Phone:    req.Phone,
+				FullName: req.FullName,
+				Password: req.Password,
+			}
+			account, err := u.getOrCreateAccount(txCtx, accReq)
+			if err != nil {
+				return nil, err
+			}
+
+			// Đảm bảo chưa có hồ sơ driver cho account này
+			if err := u.ensureDriverNotAlreadyRegistered(txCtx, account.ID); err != nil {
+				return nil, err
+			}
+
+			profile, err := u.driverProfileRepo.Create(txCtx, account.ID, req.FullName)
+			if err != nil {
+				return nil, err
+			}
+
+			updateArg := pgdb.UpdateDriverProfileParams{
+				ID: profile.ID,
+			}
+			if req.FullName != "" {
+				updateArg.FullName = pgtype.Text{String: req.FullName, Valid: true}
+			}
+			updateArg.DateOfBirth = common.ParseYYYYMMDDToPgDate(req.DateOfBirth)
+			if req.Gender != "" {
+				updateArg.Gender = pgtype.Text{String: req.Gender, Valid: true}
+			}
+			if req.Address != "" {
+				updateArg.Address = pgtype.Text{String: req.Address, Valid: true}
+			}
+
+			updated, err := u.driverProfileRepo.Update(txCtx, updateArg)
+			if err != nil {
+				return nil, err
+			}
+			if updated == nil {
+				return nil, ErrDriverNotFound
+			}
+
+			// Đăng ký các dịch vụ mà driver chọn
+			if u.driverServiceRepo != nil && len(req.ServiceIDs) > 0 {
+				if err := u.driverServiceRepo.SetDriverServices(txCtx, updated.ID, req.ServiceIDs); err != nil {
+					return nil, err
+				}
+			}
+
+			return updated, nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := u.accountRepo.GetById(ctx, createdProfile.AccountID.String())
+	if err != nil {
+		return nil, err
+	}
+	item := appdrivertransformer.ToDriverProfileItemDto(account, createdProfile)
+	return &item, nil
 }
 
 func (u *driverProfileUsecase) UpdateProfile(ctx context.Context, id uuid.UUID, req *dto.UpdateDriverProfileRequestDto) (*dto.DriverProfileItemDto, error) {

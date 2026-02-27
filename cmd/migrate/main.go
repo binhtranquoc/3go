@@ -26,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := goose.Up(db, "internal/orm/postgres/migrations"); err != nil {
+	if err := goose.Up(db, "orm/postgres/migrations"); err != nil {
 		log.Fatal(err)
 	}
 

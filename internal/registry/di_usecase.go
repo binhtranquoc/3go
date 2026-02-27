@@ -275,6 +275,7 @@ func buildUsecases() error {
 		Scope: di.App,
 		Build: func(ctn di.Container) (interface{}, error) {
 			driverProfileRepo := ctn.Get(DriverProfileRepoDIName).(app_driver_repo.IDriverProfileRepository)
+			driverServiceRepo := ctn.Get(DriverServiceRepoDIName).(app_driver_repo.IDriverServiceRepository)
 			accountRepo := ctn.Get(AccountRepoDIName).(account_repo.IAccountRepository)
 			deviceRepo := ctn.Get(DeviceRepoDIName).(account_repo.IDeviceRepository)
 			accountAppDeviceRepo := ctn.Get(AccountAppDeviceRepoDIName).(account_repo.IAccountAppDeviceRepository)
@@ -292,7 +293,7 @@ func buildUsecases() error {
 				notifyUc = notifyUcAny.(usecase_pkg.INotifyUsecase)
 			}
 			redisClient := ctn.Get(RedisClientDIName).(*redis.Client)
-			return app_driver_usecase.NewDriverProfileUsecase(driverProfileRepo, accountRepo, deviceRepo, accountAppDeviceRepo, sessionRepo, loginHistoryRepo, otpUc, notifyUc, txManager, redisClient), nil
+			return app_driver_usecase.NewDriverProfileUsecase(driverProfileRepo, driverServiceRepo, accountRepo, deviceRepo, accountAppDeviceRepo, sessionRepo, loginHistoryRepo, otpUc, notifyUc, txManager, redisClient), nil
 		},
 	}
 

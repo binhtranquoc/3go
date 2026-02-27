@@ -6,7 +6,7 @@ import (
 
 	"go-structure/internal/helper/database"
 	appdrivermapper "go-structure/internal/mapper/app_driver"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	appdrivermodel "go-structure/internal/repository/model/app_driver"
 
 	"github.com/google/uuid"

@@ -7,7 +7,7 @@ import (
 	common "go-structure/internal/common"
 	dto "go-structure/internal/dto/web_system"
 	"go-structure/internal/helper/database"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	websystem "go-structure/internal/repository/model/web_system"
 	websystem_repo "go-structure/internal/repository/web_system"
 	serviceTransformer "go-structure/internal/transformer/web_system"

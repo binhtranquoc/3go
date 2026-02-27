@@ -20,8 +20,8 @@ sqlc-mysql:
 sqlc-all: sqlc-postgres sqlc-mysql
 
 sqlc-clean:
-	rm -rf internal/orm/db/postgres
-	rm -rf internal/orm/db/mysql
+	rm -rf orm/db/postgres
+	rm -rf orm/db/mysql
 
 # ======================
 # DATABASE (một DSN duy nhất, ưu tiên env POSTGRES_DSN)
@@ -36,10 +36,10 @@ MYSQL_DSN    ?= gogin_user:123456@tcp(localhost:3306)/gogin?parseTime=true
 # GOOSE
 # ======================
 
-PG_MIGRATION_DIR = internal/orm/postgres/migrations
-PG_SEED_DIR      = internal/orm/postgres/migrations/seeds
+PG_MIGRATION_DIR = orm/postgres/migrations
+PG_SEED_DIR      = orm/postgres/migrations/seeds
 PG_SEED_TABLE   = goose_seed_version
-MYSQL_MIGRATION_DIR = internal/orm/mysql/migrations
+MYSQL_MIGRATION_DIR = orm/mysql/migrations
 
 # --- Postgres migrations ---
 

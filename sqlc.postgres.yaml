@@ -3,15 +3,15 @@ version: "2"
 sql:
   - engine: "postgresql"
     schema:
-      - internal/orm/postgres/migrations
+      - orm/postgres/migrations
     queries:
-      - internal/orm/postgres/queries
-      - internal/orm/postgres/queries/web_system
-      - internal/orm/postgres/queries/app_driver
+      - orm/postgres/queries
+      - orm/postgres/queries/web_system
+      - orm/postgres/queries/app_driver
     gen:
       go:
         package: "pgdb"
-        out: "internal/orm/db/postgres"
+        out: "orm/db/postgres"
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_interface: true

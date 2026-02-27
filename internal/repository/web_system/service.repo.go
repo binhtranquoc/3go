@@ -5,7 +5,7 @@ import (
 
 	"go-structure/internal/helper/database"
 	webmapper "go-structure/internal/mapper/web_system"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	websystem "go-structure/internal/repository/model/web_system"
 
 	"github.com/google/uuid"

@@ -7,7 +7,7 @@ import (
 	common "go-structure/internal/common"
 	dto "go-structure/internal/dto/app_driver"
 	"go-structure/internal/helper/database"
-	pgdb "go-structure/internal/orm/db/postgres"
+	pgdb "go-structure/orm/db/postgres"
 	appdriverrepo "go-structure/internal/repository/app_driver"
 	appdrivermodel "go-structure/internal/repository/model/app_driver"
 	appdrivertransformer "go-structure/internal/transformer/app_driver"
