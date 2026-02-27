@@ -100,19 +100,27 @@ pipeline {
 
                 stage('Run migrations and seeds') {
                     steps {
-                        sh """
-                            echo "Running migrations inside temporary container..."
+                        withCredentials([string(credentialsId: 'prod-postgres-dsn', variable: 'POSTGRES_DSN')]) {
+                            sh """
+                                set -e
 
-                            docker run --rm \
-                            --network gogogo_gogogo_net \
-                            ${IMAGE_NAME}:${TAG} \
-                            make pg-up
+                                echo "Running migrations..."
 
-                            docker run --rm \
-                            --network gogogo_gogogo_net \
-                            ${IMAGE_NAME}:${TAG} \
-                            make pg-seed-up
-                        """
+                                docker run --rm \
+                                --network gogogo_gogogo_net \
+                                -e POSTGRES_DSN="$POSTGRES_DSN" \
+                                ${IMAGE_NAME}:${TAG} \
+                                ./migrate
+
+                                echo "Running seeds..."
+
+                                docker run --rm \
+                                --network gogogo_gogogo_net \
+                                -e POSTGRES_DSN="$POSTGRES_DSN" \
+                                ${IMAGE_NAME}:${TAG} \
+                                ./migrate seed
+                            """
+                        }
                     }
                 }
 
