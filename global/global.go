@@ -21,5 +21,6 @@ func GetChannelLogger(channel string) *applogger.LoggerZap {
 			return l
 		}
 	}
+
 	return Logger
 }
